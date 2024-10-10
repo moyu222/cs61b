@@ -107,62 +107,229 @@ public class Model extends Observable {
      * value, then the leading two tiles in the direction of motion merge,
      * and the trailing tile does not.
      */
-    public void eachColExe(Board b, int col){
-        int aimRow = b.size()-1;
-        for (int currNum = b.size()-1; currNum >= 0 ; currNum--) {
+//    public void eachColExe(Board b, int col){
+//        int aimRow = b.size()-1;
+//        for (int currNum = b.size()-1; currNum >= 0 ; currNum--) {
+//
+//            Tile target = b.tile(col, aimRow);
+//            Tile curr = b.tile(col, currNum);
+//
+//            if(curr == null){
+//                continue;
+//            }
+//            aimRow = eachTileExe(b,target, curr,aimRow);
+//        }
+//    }
+//
+//    public int eachTileExe(Board b, Tile target, Tile curr, int aimRom){
+//
+//        if (target == null) {
+//            b.move(curr.col(), aimRom, curr);
+//        } else if (target.row() == curr.row()) {
+//            return aimRom;
+//        } else if (curr.value() == target.value()){
+//            b.move(curr.col(), aimRom, curr);
+//            this.score += target.value() * 2;
+//            aimRom --;
+//        }
+//        else {
+//            b.move(curr.col(), aimRom-1, curr);
+//            aimRom--;
+//        }
+//        return aimRom;
+//    }
 
-            Tile target = b.tile(col, aimRow);
-            Tile curr = b.tile(col, currNum);
+//    public void eachColExe(Board b, int col) {
+//        int aimRow = b.size() - 1; // 从底部开始
+//        for (int currNum = b.size() - 1; currNum >= 0; currNum--) {
+//            Tile curr = b.tile(col, currNum); // 当前棋子
+//
+//            if (curr == null) {
+//                continue; // 跳过空棋子
+//            }
+//
+//
+//            Tile target = b.tile(col, aimRow); // 当前目标位置的棋子
+//
+//            if (target == null) {
+//                // 如果目标位置为空，直接移动当前棋子
+//                b.move(col, aimRow, curr);
+//            }
+//
+//            else if (target.row() == curr.row()) {}
+//
+//            else if (curr.value() == target.value()) {
+//                // 如果当前棋子和目标棋子值相同，进行合并
+//                b.move(col, aimRow, curr);
+//                this.score += target.value() * 2; // 更新分数
+//                aimRow--; // 合并后，更新目标行
+//            } else {
+//                // 否则，将当前棋子移动到目标行的上方
+//                aimRow--; // 更新目标行
+//                if (aimRow != currNum) { // 确保只在必要时移动
+//                    b.move(col, aimRow, curr);
+//                }
+//            }
+//        }
+//    }
+//
 
-            if(curr == null){
-                continue;
-            }
-            aimRow = eachTileExe(b,target, curr,aimRow);
-        }
-    }
-
-    public int eachTileExe(Board b, Tile target, Tile curr, int aimRom){
-
-        if (target == null) {
-            b.move(curr.col(), aimRom, curr);
-        } else if (target.row() == curr.row()) {
-            return aimRom;
-        } else if (curr.value() == target.value()){
-            b.move(curr.col(), aimRom, curr);
-            this.score += target.value() * 2;
-            aimRom --;
-        }
-        else {
-            b.move(curr.col(), aimRom-1, curr);
-            aimRom--;
-        }
-        return aimRom;
-    }
 
     public boolean tilt(Side side) {
         boolean changed;
         changed = false;
-        // TODO: Modify this.board (and perhaps this.score) to account
-        // for the tilt to the Side SIDE. If the board changed, set the
-        // changed local variable to true.
+//        // TODO: Modify this.board (and perhaps this.score) to account
+//        // for the tilt to the Side SIDE. If the board changed, set the
+//        // changed local variable to true.
+//
+//        board.setViewingPerspective(side);
+//
+//        if (atLeastOneMoveExists(this.board)){
+//            changed = true;
+//        }
+//        for (int col = 0; col < this.board.size(); col++) {
+//            eachColExe(this.board, col);
+//        }
+//        board.setViewingPerspective(Side.NORTH);
+//
+//
+//        checkGameOver();
+//        if (changed) {
+//            setChanged();
+//        }
+//        return changed;
+//    }
+
         board.setViewingPerspective(side);
-        int scoreBefore = this.score;
-        if (atLeastOneMoveExists(this.board)){
-            changed = true;
-        }
-        for (int col = 0; col < this.board.size(); col++) {
-            eachColExe(this.board, col);
-        }
+        int[] backup = new int[4];
+        for (int c = board.size() - 1; c >= 0; c--) {
+            // 记录当前列的元素
+            int[] x = new int[4];
+            // 记录合并的次数
+            int len = 0;
 
+            for (int i = 3; i >= 0 ; i--) {
+                if (this.tile(c, i) != null) backup[i] = this.tile(c, i).value();
+            }
+
+            // 将顶行数据存入到辅助数组中
+            if (board.tile(c, 3) != null) x[3] = board.tile(c, 3).value();
+            for (int r = board.size() - 2 ; r >= 0; r--) {
+                if (board.tile(c, r) != null) {
+                    // 取出当前的值
+                    int currentValue = board.tile(c, r).value();
+                    Tile t = board.tile(c, r);
+                    // 添加到辅助数组中
+                    x[r] = currentValue;
+                    // 判断移动的位置
+                    int moveStep = getMoveStep(x, c, r, currentValue, len, backup);
+                    /**
+                     * 移动到某个行的位置上如果不为null说明元素进行结合
+                     * 且移动的位置不能不变
+                     * 例如：[4,2,2,0]
+                     * 当对下标为1的元素进行操作，显然它需要执行move(c, 2, t)
+                     * 需要特判moveStep不能与当前位置一样
+                     */
+                    if (board.tile(c, moveStep) != null && moveStep != r) {
+                        score += 2 * board.tile(c, moveStep).value();
+                        len++;
+                    }
+                    board.move(c, moveStep, t);
+                    // 更新辅助数组
+                    update(x, c);
+                    changed = true;
+                }
+            }
+        }
         board.setViewingPerspective(Side.NORTH);
-
-
         checkGameOver();
         if (changed) {
             setChanged();
         }
         return changed;
     }
+
+    /**
+     * 进行move method之后，如果当前位置不为null说明进行移动
+     * @param x
+     * @param col
+     */
+    private void update(int[] x, int col) {
+
+        for (int r = 0; r < board.size(); r++) {
+            if (board.tile(col, r) != null) {
+                x[r] = board.tile(col, r).value();
+            } else {
+                x[r] = 0;
+            }
+        }
+    }
+
+    /**
+     *
+     * @param x
+     * @param col
+     * @param row
+     * @param currentValue
+     * @return
+     */
+//    private int getMoveStep(int[] x, int col, int row, int currentValue, int len, int[] backup) {
+//
+//        // 记录移动到多少行
+//        int res = row;
+//
+//        // 判断是否遍历到最后一行
+//        if (row == 0) {
+//            // 计算原始数组中的有效元素
+//            int backupIndex = 0;
+//
+//            for (int i = 0; i < backup.length; i++) {
+//                if (backup[i] != 0) backupIndex++;
+//            }
+//
+//            // 如果有效元素等于4则说明只需要检查currentValue和上一个元素是否相等,且和边界值相等
+//            if (row == 0 && backupIndex == 4 && currentValue == x[x.length - 1 - len]) {
+//                if (backup[1] != currentValue) res = row - 1;
+//            }
+//        }
+//
+//        for (int i = row; i < x.length - 1 - len; res++, i++) {
+//            // 当前位置上的元素不等于上面的元素且上一个元素不等于零则不动
+//            if (currentValue != x[i + 1] && x[i + 1] != 0) return res;
+//                // 当前元素等于上一个元素 当起行+1
+//            else if (currentValue == x[i + 1]) return res + 1;
+//        }
+//        return res;
+//    }res
+    private int getMoveStep(int[] x, int col, int row, int currentValue, int len, int[] backup) {
+
+        // 记录移动到多少行
+        int res = row;
+
+        // 判断是否遍历到最后一行
+        if (row == 0) {
+            // 计算原始数组中的有效元素
+            int backupIndex = 0;
+
+            for (int i = 0; i < backup.length; i++) {
+                if (backup[i] != 0) backupIndex++;
+            }
+
+            // 如果有效元素等于4则说明只需要检查currentValue和上一个元素是否相等,且和边界值相等
+            if (row == 0 && backupIndex == 4 && currentValue == x[x.length - 1 - len]) {
+                if (backup[1] != currentValue) res = row - 1;
+            }
+        }
+
+        for (int i = row; i < x.length - 1 - len; res++, i++) {
+            // 当前位置上的元素不等于上面的元素且上一个元素不等于零则不动
+            if (currentValue != x[i + 1] && x[i + 1] != 0) return res;
+                // 当前元素等于上一个元素 当起行+1
+            else if (currentValue == x[i + 1]) return res + 1;
+        }
+        return res;
+    }
+
 
 
 
@@ -202,14 +369,9 @@ public class Model extends Observable {
      */
     public static boolean maxTileExists(Board b) {
         // TODO: Fill in this function.
-        int testNum = b.size();
-        for (int row = 0; row < testNum; row++) {
-            for (int col = 0; col < testNum; col++) {
-                if (b.tile(row ,col) == null) {
-                    return false;
-                } else if (b.tile(row ,col).value() == MAX_PIECE) {
-                    return true;
-                }
+        for (int i = 0; i < b.size(); i++) {
+            for (int j = 0; j < b.size(); j++) {
+                if (b.tile(j, i) != null && b.tile(j, i).value() == MAX_PIECE) return true;
             }
         }
         return false;
