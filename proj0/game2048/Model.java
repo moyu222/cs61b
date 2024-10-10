@@ -94,25 +94,68 @@ public class Model extends Observable {
         setChanged();
     }
 
-    /** Tilt the board toward SIDE. Return true iff this changes the board.
-     *
+    /**
+     * Tilt the board toward SIDE. Return true iff this changes the board.
+     * <p>
      * 1. If two Tile objects are adjacent in the direction of motion and have
-     *    the same value, they are merged into one Tile of twice the original
-     *    value and that new value is added to the score instance variable
+     * the same value, they are merged into one Tile of twice the original
+     * value and that new value is added to the score instance variable
      * 2. A tile that is the result of a merge will not merge again on that
-     *    tilt. So each move, every tile will only ever be part of at most one
-     *    merge (perhaps zero).
+     * tilt. So each move, every tile will only ever be part of at most one
+     * merge (perhaps zero).
      * 3. When three adjacent tiles in the direction of motion have the same
-     *    value, then the leading two tiles in the direction of motion merge,
-     *    and the trailing tile does not.
-     * */
+     * value, then the leading two tiles in the direction of motion merge,
+     * and the trailing tile does not.
+     */
+    public void eachColExe(Board b, int col){
+        int aimRow = b.size()-1;
+        for (int currNum = b.size()-1; currNum >= 0 ; currNum--) {
+
+            Tile target = b.tile(col, aimRow);
+            Tile curr = b.tile(col, currNum);
+
+            if(curr == null){
+                continue;
+            }
+            aimRow = eachTileExe(b,target, curr,aimRow);
+        }
+    }
+
+    public int eachTileExe(Board b, Tile target, Tile curr, int aimRom){
+
+        if (target == null) {
+            b.move(curr.col(), aimRom, curr);
+        } else if (target.row() == curr.row()) {
+            return aimRom;
+        } else if (curr.value() == target.value()){
+            b.move(curr.col(), aimRom, curr);
+            this.score += target.value() * 2;
+            aimRom --;
+        }
+        else {
+            b.move(curr.col(), aimRom-1, curr);
+            aimRom--;
+        }
+        return aimRom;
+    }
+
     public boolean tilt(Side side) {
         boolean changed;
         changed = false;
-
         // TODO: Modify this.board (and perhaps this.score) to account
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
+        board.setViewingPerspective(side);
+        int scoreBefore = this.score;
+        if (atLeastOneMoveExists(this.board)){
+            changed = true;
+        }
+        for (int col = 0; col < this.board.size(); col++) {
+            eachColExe(this.board, col);
+        }
+
+        board.setViewingPerspective(Side.NORTH);
+
 
         checkGameOver();
         if (changed) {
@@ -120,6 +163,8 @@ public class Model extends Observable {
         }
         return changed;
     }
+
+
 
     /** Checks if the game is over and sets the gameOver variable
      *  appropriately.
@@ -178,11 +223,41 @@ public class Model extends Observable {
      */
     public static boolean atLeastOneMoveExists(Board b) {
         // TODO: Fill in this function.
-        boolean flag1 = maxTileExists(b);
-        boolean flag2;
+        /**
+         * Returns true if there are any valid moves on the board.
+         * There are two ways that there can be valid moves:
+         * 1. There is at least one empty space on the board.
+         * 2. There are two adjacent tiles with the same value.
+         */
 
 
+        if(emptySpaceExists(b)){  //调用 任务1 编写的函数判断界面上有无空格
+            return true;
+        }else{
+            int i , j;
+            // 双循环检查每一个格子是否和右侧格子的值相等
+            //仅遍历前三行
+            for(i = 0 ; i < b.size() ; i++ ){
+                for(j = 0; j < b.size()-1 ; j++ ){
+                    if(b.tile(i,j).value() == b.tile(i,j+1).value()){
+                        return true ;
+                    }
+                }
+            }
+
+            //双循环检查每一个格子是否和下面的格子的值相等
+            //仅遍历左三列
+            for(i = 0 ; i < b.size()-1 ; i++ ){
+                for(j = 0; j < b.size() ; j++ ){
+                    if(b.tile(i,j).value() == b.tile(i+1,j).value()){
+                        return true ;
+                    }
+                }
+            }
+        }
         return false;
+
+
     }
 
 
