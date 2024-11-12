@@ -79,23 +79,31 @@ public class ArrayDeque<T> {
     public T removeFrist() {
         int first = trans(nextFirst + 1);
         T x = items[first];
-        items[first] = null;
-        size -= 1;
-        if (size < items.length / 4) {
-            resize();
+        if (x == null) {
+            return null;
+        }else {
+            items[first] = null;
+            size -= 1;
+            if (size < items.length / 4) {
+                resize();
+            }
+            return x;
         }
-        return x;
     }
 
     public T removeLast() {
         int last = trans(nextLast - 1);
         T x = items[last];
-        items[last] = null;
-        size -= 1;
-        if (size < items.length / 4) {
-            resize();
+        if (x == null) {
+            return null;
+        }else {
+            items[last] = null;
+            size -= 1;
+            if (size < items.length / 4) {
+                resize();
+            }
+            return x;
         }
-        return x;
     }
 
     public T get(int key) {
