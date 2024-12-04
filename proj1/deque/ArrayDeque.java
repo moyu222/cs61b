@@ -13,46 +13,40 @@ public class ArrayDeque<T> {
         nextLast = 5;
     }
 
-    private void resize() {
-        int capacity = size * 2;
-        T[] tempDeque =  (T[]) new Object[capacity];
-        System.arraycopy(items, 0, tempDeque, 0, size);
-        System.arraycopy(items, 0, tempDeque, size, size);
-        T[] a = (T[]) new Object[capacity];
-        int first = capacity / 4;
-        System.arraycopy(tempDeque, trans(nextFirst + 1), a, first, size);
+    private void resize(int capacity) {
+        T[] tempDeque = (T[]) new Object[capacity];
+        for (int i = 0; i < size; i++) {
+            tempDeque[i] = items[trans(nextFirst + 1 + i)];
+        }
+        items = tempDeque;
+        nextFirst = capacity - 1;
+        nextLast = size;
     }
 
     public int trans(int index) {
-        if (index >= items.length){
-            return index - items.length;
-        } else if (index == -1) {
-            return items.length - 1;
-        }else {
-            return index;
-        }
+        return (index + items.length) % items.length;
     }
 
     public void addFirst(T item) {
-        this.resize();
+        if (size == items.length) {
+            resize(items.length * 2);
+        }
         items[nextFirst] = item;
         size += 1;
         trans(nextFirst - 1);
     }
 
     public void addLast(T item) {
-        this.resize();
+        if (size == items.length) {
+            resize(items.length * 2);
+        }
         items[nextLast] = item;
         size += 1;
         trans(nextLast + 1);
     }
 
     public boolean isEmpty() {
-        if (size == 0) {
-            return true;
-        }else {
-            return false;
-        }
+        return size == 0;
     }
 
     public int size() {
@@ -61,58 +55,45 @@ public class ArrayDeque<T> {
 
 
     public void printDeque() {
-        int first = trans(nextFirst + 1);
-        int last = trans(nextLast -1);
-        if (size != 0 && first > last) {
-            for (int i = first; i < (last + items.length); i++) {
-                System.out.println(items[trans(i)]);
-                System.out.println( );
-            }
-        } else if (size != 0) {
-            for (int i = first; i < last; i++) {
-                System.out.println(items[trans(i)]);
-                System.out.println( );
-            }
+        for (int i = 0; i < size; i++) {
+            System.out.print(items[trans(nextFirst + 1 + i)] + " ");
         }
+        System.out.println();
     }
 
-    public T removeFrist() {
-        int first = trans(nextFirst + 1);
-        T x = items[first];
-        if (x == null) {
+    public T removeFirst() {
+        if (isEmpty()) {
             return null;
-        }else {
-            items[first] = null;
-            size -= 1;
-            if (size < items.length / 4) {
-                resize();
-            }
-            return x;
         }
+        nextFirst = trans(nextFirst + 1);
+        T item = items[nextFirst];
+        items[nextFirst] = null;
+        size--;
+        if (size < items.length / 4 && items.length > 8) {
+            resize(items.length / 2);
+        }
+        return item;
     }
 
     public T removeLast() {
-        int last = trans(nextLast - 1);
-        T x = items[last];
-        if (x == null) {
+        if (isEmpty()) {
             return null;
-        }else {
-            items[last] = null;
-            size -= 1;
-            if (size < items.length / 4) {
-                resize();
-            }
-            return x;
         }
+        nextLast = trans(nextLast - 1);
+        T item = items[nextLast];
+        items[nextLast] = null;
+        size--;
+        if (size < items.length / 4 && items.length > 8) {
+            resize(items.length / 2);
+        }
+        return item;
     }
 
-    public T get(int key) {
-        int index = trans(nextFirst + 1 + key);
-        if (items[index] != null) {
-            return items[index];
-        }else {
+    public T get(int index) {
+        if (index < 0 || index >= size) {
             return null;
         }
+        return items[trans(nextFirst + 1 + index)];
     }
 
 
