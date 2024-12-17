@@ -96,7 +96,4 @@ public class ArrayDeque<T> {
         return items[trans(nextFirst + 1 + index)];
     }
 
-
-
-
 }
