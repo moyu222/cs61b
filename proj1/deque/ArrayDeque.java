@@ -2,7 +2,7 @@ package deque;
 
 import java.util.Iterator;
 
-public class ArrayDeque<T> implements Deque<T>{
+public class ArrayDeque<T> implements Deque<T> {
     public T[] items;
     public int size;
     public int nextFirst;
@@ -105,7 +105,6 @@ public class ArrayDeque<T> implements Deque<T>{
     }
 
     /** implement for loop iteration*/
-    @Override
     public Iterator<T> iterator() {
         return new ArrayDequeIterator();
     }

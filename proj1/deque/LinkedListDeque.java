@@ -120,7 +120,6 @@ public class LinkedListDeque<T> implements Deque<T> {
     }
 
     /** implement for loop iteration */
-    @Override
     public Iterator<T> iterator() {
         return new LinkListDequeIterator();
     }
