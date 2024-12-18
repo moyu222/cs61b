@@ -2,11 +2,11 @@ package deque;
 
 import java.util.Iterator;
 
-public class ArrayDeque<T> implements Deque<T> {
-    public T[] items;
-    public int size;
-    public int nextFirst;
-    public int nextLast;
+public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
+    private T[] items;
+    private int size;
+    private int nextFirst;
+    private int nextLast;
 
     public ArrayDeque() {
         items = (T[]) new Object[8];
@@ -25,7 +25,7 @@ public class ArrayDeque<T> implements Deque<T> {
         nextLast = size;
     }
 
-    public int trans(int index) {
+    private int trans(int index) {
         return (index + items.length) % items.length;
     }
 
@@ -112,7 +112,7 @@ public class ArrayDeque<T> implements Deque<T> {
     private class ArrayDequeIterator implements Iterator<T> {
         private int pos;
         private int count;
-        public ArrayDequeIterator() {
+        ArrayDequeIterator() {
             pos = trans(nextFirst + 1);
         }
 
@@ -133,10 +133,14 @@ public class ArrayDeque<T> implements Deque<T> {
     /** implement equals method*/
     @Override
     public boolean equals(Object other) {
-        if (this == other) {return true;}
+        if (this == other) {
+            return true;
+        }
         if (other instanceof ArrayDeque<?>) {
             ArrayDeque<?> otherDeque = (ArrayDeque<?>) other;
-            if (this.size != otherDeque.size) {return false;}
+            if (this.size != otherDeque.size) {
+                return false;
+            }
             for (int i = 0; i < size; i++) {
                 if (this.get(i) == null) {
                     if (otherDeque.get(i) != null) {
