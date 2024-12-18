@@ -135,7 +135,8 @@ public class ArrayDeque<T> implements Deque<T>{
     @Override
     public boolean equals(Object other) {
         if (this == other) {return true;}
-        if (other instanceof ArrayDeque otherDeque) {
+        if (other instanceof ArrayDeque<?>) {
+            ArrayDeque<?> otherDeque = (ArrayDeque<?>) other;
             if (this.size != otherDeque.size) {return false;}
             for (int i = 0; i < size; i++) {
                 if (this.get(i) == null) {

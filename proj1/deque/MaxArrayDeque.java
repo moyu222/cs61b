@@ -1,7 +1,6 @@
-package gh2;
+package deque;
 
 import java.util.Comparator;
-import deque.ArrayDeque;
 
 public class MaxArrayDeque<T> extends ArrayDeque<T> {
     private Comparator<T> comparator;

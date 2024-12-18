@@ -1,4 +1,4 @@
-package gh2;
+package deque;
 import java.util.Comparator;
 import org.junit.Test;
 import static org.junit.Assert.*;
