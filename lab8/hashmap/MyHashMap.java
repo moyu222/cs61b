@@ -215,7 +215,7 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
 
     /** resize the buckets if N/M => loadFactor
      * double M. use .hashCode() and Math.floorMod and .equals() */
-    public void resize() {
+    private void resize() {
         if (!((n / m) <= loadFactor)) {
             m = m * 2;
             MyHashMap<K, V> newHM = new MyHashMap(m);
