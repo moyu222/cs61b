@@ -1,5 +1,7 @@
 package gitlet;
 
+import java.util.ResourceBundle;
+
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author TODO
  */
@@ -28,7 +30,80 @@ public class Main {
                 String fileName = args[1];
                 Repository.add(fileName);
                 break;
-            // TODO: FILL THE REST IN
+            case "commit":
+                validateNumArgs(args, 2);
+                checkInit();
+                String message = args[1];
+                Repository.commit(message);
+                break;
+            case "rm":
+                validateNumArgs(args, 2);
+                checkInit();
+                String file = args[1];
+                Repository.rm(file);
+                break;
+            case "log":
+                validateNumArgs(args, 1);
+                checkInit();
+                Repository.log();
+                break;
+            case "global-log":
+                validateNumArgs(args, 1);
+                checkInit();
+                Repository.globalLog();
+                break;
+            case "find":
+                validateNumArgs(args, 2);
+                checkInit();
+                String commitMessage = args[1];
+                Repository.find(commitMessage);
+                break;
+            case "status":
+                validateNumArgs(args, 1);
+                checkInit();
+                Repository.status();
+                break;
+            case "checkout":
+                checkInit();
+
+                if (args.length == 3 && args[1].equals("--")) {
+                    Repository.checkoutLatestFile(args[2]);
+
+                } else if (args.length == 4 && args[2].equals("--")) {
+                    Repository.checkoutIdFile(args[1], args[3]);
+
+                } else if (args.length == 2) {
+                    Repository.checkoutBranch(args[1]);
+
+                } else {
+                    System.out.println("Incorrect operands.");
+                    System.exit(0);
+                }
+                break;
+            case "branch":
+                validateNumArgs(args, 2);
+                checkInit();
+                String branchName = args[1];
+                Repository.branch(branchName);
+                break;
+            case "rm-branch":
+                validateNumArgs(args, 2);
+                checkInit();
+                String rmBranchName = args[1];
+                Repository.branch(rmBranchName);
+                break;
+            case "reset":
+                validateNumArgs(args, 2);
+                checkInit();
+                String commitId = args[1];
+                Repository.reset(commitId);
+                break;
+            case "merge":
+                validateNumArgs(args, 2);
+                checkInit();
+                String mergeBranchName = args[1];
+                Repository.branch(mergeBranchName);
+                break;
         }
 
     }

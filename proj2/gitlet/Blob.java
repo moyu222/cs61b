@@ -58,4 +58,9 @@ public class Blob {
     public byte[] getBlobContent() {
         return content;
     }
+
+    /** overwrite or write file in the work dir
+     *  load content from the blobHash
+     */
+
 }

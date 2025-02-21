@@ -5,18 +5,26 @@ package gitlet;
 import java.io.File;
 import java.io.Serial;
 import java.io.Serializable;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.Date; // TODO: You'll likely use this in this class
-import java.util.HashMap;
-import java.util.List;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static gitlet.Utils.join;
 
 /** Represents a gitlet commit object.
  *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
+ *  commits has parent commit (at most two), and load them in the runtime
+ *  in the commit file:
+ *  file name is the hash value of the commit object
+ *
+ *  commit object
+ *  List<Commit></Commit> parentCommit
+ *  List<String></String> parentHash
+ *  String hash - file name
+ *  String message - commmit description
+ *  String timestamp - commit time
+ *  HashMap blobRef (the name of work file, the name of corresponding blob name)
  *
  *  @author TODO
  */
@@ -32,48 +40,88 @@ public class Commit implements Serializable {
     /** The commits directory */
     static final File COMMIT_DIR = join(Repository.GITLET_DIR, "objects", "commits");
 
-    /** The  sha-1. name of commit file */
-    private String commitName;
-
     /** The message of this Commit. */
-    private String message;
+    private final String message;
 
     /** The timestamp of commit */
-    private final String timestamp = DateTimeFormatter
-            .ofPattern("EEE MMM d HH:mm:ss yyyy Z")
-            .withZone(ZoneId.of("UTC"))
-            .format(Instant.ofEpochSecond(0));
-
+    private final String timestamp;
 
     /** The parents (max two)  commit file name (hash)
      * use List<String> */
-    private List<String> parentHashes;
+    private final List<String> parentHashes;
 
     /** the parent commit
      * use List<Commit></Commit>*/
     private transient List<Commit> parentCommits;
 
     /** The hashmap for the tracked file*/
-    private HashMap<String, String> blobsRef;
+    private final TreeMap<String, String> blobsRef;
 
-
+    /** the hash of commit */
+    private transient String hash;
 
     /** The content of commit:
      * String message
      * Date timestamp
-     * Blobs hashmap(file name: reference) if there is a change to
-     * one file overwrite the reference. if there is new file add
-     * node to hashmap the tree structure
+     * List<String></String> parent hash
+     * blobsRef from parent same
      */
 
     /** the constructor of commit */
-    public Commit() {
-
+    public Commit(String message, List<String> parentHashes) {
+        this.message = message;
+        this.parentHashes = parentHashes != null ? parentHashes : Collections.emptyList();
+        if (this.parentHashes.isEmpty()) {
+            this.timestamp = "Thu Jan 1 00:00:00 1970 +0000";
+            this.blobsRef = new TreeMap<>();
+        } else {
+            this.timestamp = getCurrentTimestamp();
+            this.blobsRef = loadBlobsFromParent(this.parentHashes);
+        }
     }
 
-    /** get the file name */
-    public String getCommitName() {
-        return commitName;
+    public Commit(String message, String parentHash) {
+        this.message = message;
+        // an empty set that can not modify collections.emptyList() keep invariant
+        List<String> parentHashes = new ArrayList<>();
+        parentHashes.add(parentHash);
+        this.parentHashes = parentHashes;
+        this.timestamp = getCurrentTimestamp();
+        this.blobsRef = loadBlobsFromParent(parentHashes);
+    }
+
+
+    /** get the current timestamp */
+    private String getCurrentTimestamp() {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy XXXX");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return dateFormat.format(new Date());
+    }
+
+    /** compute the file name use this after compare to the index*/
+    public void computeHash() {
+        if (this.hash != null) {
+            return;
+        }
+        this.hash = Utils.sha1(Utils.serialize(this));
+    }
+
+    /** get the hash of the commit */
+    public String getHash() {
+        if (this.hash == null) {
+            computeHash();
+        }
+        return this.hash;
+    }
+
+    /** load the blobsRef from parent hash
+     *
+     * hash -> object (commit) -> treemap
+     */
+    private TreeMap<String, String> loadBlobsFromParent(List<String> parentHashes) {
+        String firstParentHash = parentHashes.get(0);
+        Commit firstParent = loadCommitFromHash(firstParentHash);
+        return new TreeMap<>(firstParent.getBlobsRef());
     }
 
     /** get list of parent commits hash */
@@ -83,6 +131,12 @@ public class Commit implements Serializable {
 
     /** load parent commit in run time */
     public void loadParentCommits() {
+        parentCommits = new ArrayList<>();
+
+        if (parentHashes.isEmpty()) {
+            return;
+        }
+
         for (String hash : parentHashes) {
             Commit parent = loadCommitFromHash(hash);
             if (parent != null) {
@@ -91,10 +145,98 @@ public class Commit implements Serializable {
         }
     }
 
-    /** load commit from hash */
-    private Commit loadCommitFromHash(String hash) {
-        return
+    /** after load, get the first parent of the commit */
+    public Commit getFirstParentCommit() {
+        return (parentCommits != null && !parentCommits.isEmpty()) ? parentCommits.get(0) : null;
     }
+
+    /** compare with index to determine the blobsRef and return if blobsRef
+     * been changed
+     * Assume there is index file */
+    public boolean deterBlobsRef(HashMap<String, String> stagingMap) {
+
+        TreeMap<String, String> oldBlobsRef = new TreeMap<>(blobsRef);
+
+        for (Map.Entry<String, String> entry : stagingMap.entrySet()) {
+            String filePath = entry.getKey();
+            String blobHash = entry.getValue();
+            blobsRef.put(filePath, blobHash);
+        }
+        return !oldBlobsRef.equals(blobsRef);
+    }
+
+    /** remove file path and blob hash in the blobsRef
+     *  Assume the file already in the commit
+     *  return if changed */
+    public boolean removeBlobsRef(HashSet<String> removedFiles) {
+
+        HashMap<String, String> oldBlobsRef = new HashMap<>(blobsRef);
+        for (String file : removedFiles) {
+            blobsRef.remove(file);
+        }
+        return !oldBlobsRef.equals(blobsRef);
+    }
+
+    /** load commit from hash */
+    public static Commit loadCommitFromHash(String hash) {
+        File commitFile = join(COMMIT_DIR, hash);
+        Commit returnCommit = Utils.readObject(commitFile, Commit.class);
+        returnCommit.hash = hash;
+        return returnCommit;
+    }
+
+    /** get blobsRef for next commit */
+    public TreeMap<String, String> getBlobsRef() {
+        return blobsRef;
+    }
+
+    /** get String format when gitlet log
+     * Assume that the commit has already computed the hash */
+    public String getLog() {
+        StringBuilder log = new StringBuilder();
+        log.append("===\n");
+        log.append("commit ").append(getHash()).append("\n");
+
+        if (parentHashes.size() > 1) {
+            log.append("Merge: ")
+                    .append(parentHashes.get(0), 0, 7).append(" ")
+                    .append(parentHashes.get(1), 0, 7).append("\n");
+        }
+
+        log.append("Date: ").append(timestamp).append("\n");
+        log.append(message).append("\n");
+        log.append("\n");
+
+        return log.toString();
+    }
+
+
+    /** save the commit file
+     * Assume the commit has determined the blobsRef
+     * after deterBlobsRef and get hash */
+    public void saveCommit(String hash) {
+        File filePath = join(COMMIT_DIR, hash);
+        Utils.writeObject(filePath, this);
+    }
+
+    /** get message */
+    public String getMessage() {
+        return this.message;
+    }
+
+    /** Finds the full commit ID that starts with the given prefix */
+    public static String findFullCommitId(String prefix) {
+        List<String> commitList = Utils.plainFilenamesIn(Commit.COMMIT_DIR);
+        if (!(commitList == null || commitList.isEmpty())) {
+            for (String commitId: commitList) {
+                if (commitId.startsWith(prefix)) {
+                    return commitId;
+                }
+            }
+        }
+        return null;
+    }
+
 
     /* TODO: fill in the rest of this class. */
 }
