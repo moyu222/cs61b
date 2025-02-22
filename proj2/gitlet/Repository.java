@@ -1,8 +1,5 @@
 package gitlet;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.lang.module.FindException;
@@ -19,7 +16,6 @@ import static gitlet.Utils.*;
  *  @author TODO
  */
 public class Repository {
-    private static final Logger log = LoggerFactory.getLogger(Repository.class);
     /**
      * TODO: add instance variables here.
      *
