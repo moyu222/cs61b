@@ -104,6 +104,9 @@ public class Main {
                 String mergeBranchName = args[1];
                 Repository.merge(mergeBranchName);
                 break;
+            default:
+                System.out.println("No command with that name exists.");
+                System.exit(0);
         }
 
     }

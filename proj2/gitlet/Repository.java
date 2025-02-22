@@ -149,8 +149,9 @@ public class Repository {
         String parentCommitHash = getHeadCommitHash();
         Commit newCommit = new Commit(message, parentCommitHash);
 
-        boolean changed = newCommit.deterBlobsRef(staging.getStagedMap()) ||
-                newCommit.removeBlobsRef(staging.getRemovedFiles());
+        boolean changed1 = newCommit.deterBlobsRef(staging.getStagedMap());
+        boolean changed2 = newCommit.removeBlobsRef(staging.getRemovedFiles());
+        boolean changed = changed1 || changed2;
         if (!changed) {
             System.out.println("No changes added to the commit");
             return;
@@ -400,15 +401,6 @@ public class Repository {
         TreeMap<String, String> currCommitBlobRefs = currCommit.getBlobsRef();
         List<String> workFileList = Utils.plainFilenamesIn(CWD);
 
-        for (String file : workFileList) {
-            if (!(currCommitBlobRefs.containsKey(file))) {
-                System.out.println("There is an untracked file in the way; delete it, " +
-                        "or add and commit it first.");
-                System.exit(0);
-            }
-        }
-
-
         File branchPath = join(HEADS_DIR, branchName);
         if (!branchPath.exists()) {
             System.out.println("No such branch exists.");
@@ -417,9 +409,16 @@ public class Repository {
 
         String specifiedCommitHash = Utils.readContentsAsString(branchPath);
         Commit specifiedCommit = Commit.loadCommitFromHash(specifiedCommitHash);
-
         TreeMap<String, String> blobsRef = specifiedCommit.getBlobsRef();
         Set<String> workFilesToRemove = new HashSet<>(workFileList);
+
+        for (String file : workFileList) {
+            if (!(currCommitBlobRefs.containsKey(file)) && blobsRef.containsKey(file)) {
+                System.out.println("There is an untracked file in the way; delete it, " +
+                        "or add and commit it first.");
+                System.exit(0);
+            }
+        }
 
         for (Map.Entry<String, String> entry: blobsRef.entrySet()) {
             String fileName = entry.getKey();
@@ -488,16 +487,17 @@ public class Repository {
      * use commit id prefix as checkout
      */
     public static void reset(String prefix) {
+
         String commitId = Commit.findFullCommitId(prefix);
         if (commitId == null) {
             System.out.println("No commit with that id exists.");
             return;
         }
 
+        String currHead = getCurrentBranch();
         File tempBranch = join(HEADS_DIR, "temp");
         Utils.writeContents(tempBranch, commitId);
         checkoutBranch("temp");
-        String currHead = getCurrentBranch();
         changeBranch(currHead);
         tempBranch.delete();
         File headFile = join(HEADS_DIR, currHead);
@@ -508,6 +508,22 @@ public class Repository {
      *
      */
     public static void merge(String branchName) {
+
+        String currBCHash = getHeadCommitHash();
+        Commit currCommit = Commit.loadCommitFromHash(currBCHash);
+        TreeMap<String, String> currCommitBlobRefs = currCommit.getBlobsRef();
+        List<String> workFileList = Utils.plainFilenamesIn(CWD);
+
+        if (workFileList != null) {
+            for (String file : workFileList) {
+                if (!(currCommitBlobRefs.containsKey(file))) {
+                    System.out.println("There is an untracked file in the way; delete it, " +
+                            "or add and commit it first.");
+                    System.exit(0);
+                }
+            }
+        }
+
         if (Index.INDEX_FILE.exists()) {
             Index staging = Index.getIndex();
             if (!staging.getStagedMap().isEmpty() || !staging.getRemovedFiles().isEmpty()) {
@@ -525,9 +541,9 @@ public class Repository {
         String currBranch = getCurrentBranch();
         if (currBranch.equals(branchName)) {
             System.out.println("Cannot merge a branch with itself.");
+            return;
         }
 
-        String currBCHash = getHeadCommitHash();
         String givenBCHash = Utils.readContentsAsString(givenBranchPath);
         Map<String, Integer> commitCount = new HashMap<>();
         Queue<String> queue = new LinkedList<>();
@@ -545,7 +561,7 @@ public class Repository {
 
             Commit commit = Commit.loadCommitFromHash(commitHash);
             for (String parentHash : commit.getParentHashes()) {
-                if (parentHash != null && !commitCount.containsKey(parentHash)) {
+                if (parentHash != null) {
                     queue.offer(parentHash);
                 }
             }
@@ -598,6 +614,8 @@ public class Repository {
 
             if (givenCaseNum == 5 && currCaseNum == 4) {
                 staging.add(fileName, givenBlobId);
+                String Content = Utils.readContentsAsString(join(Blob.BLOBS_DIR, givenBlobId));
+                Utils.writeContents(workFilePath, Content);
             } else if (givenCaseNum == 4 && currCaseNum == 5) {
                 staging.add(fileName, currBlobId);
             } else if (givenCaseNum == 1 && currCaseNum == 3) {
@@ -617,16 +635,16 @@ public class Repository {
                 if (currBlobId != null) {
                     newContent.append("<<<<<<< HEAD").append("\n");
                     String currContent = Utils.readContentsAsString(join(Blob.BLOBS_DIR, currBlobId));
-                    newContent.append(currContent).append("\n");
+                    newContent.append(currContent);
                     newContent.append("=======").append("\n");
                 }
                 if (givenBlobId != null) {
                     newContent.append(Utils.readContentsAsString(join(Blob.BLOBS_DIR, givenBlobId)));
-                    newContent.append("\n");
                 }
-                newContent.append(">>>>>>>");
+                newContent.append(">>>>>>>").append("\n");
                 Utils.writeContents(workFilePath, newContent.toString());
                 add(fileName);
+                staging = Index.getIndex();
                 System.out.println("Encountered a merge conflict.");
             }
 
@@ -636,10 +654,21 @@ public class Repository {
         List<String> parentHashes = new ArrayList<>();
         parentHashes.add(currBCHash);
         parentHashes.add(givenBCHash);
+
+        if (staging.getStagedMap().isEmpty() && staging.getRemovedFiles().isEmpty()) {
+            System.out.println("No changes added to the commit");
+            return;
+        }
+
         Commit newCommit = new Commit(message, parentHashes);
 
-        newCommit.deterBlobsRef(staging.getStagedMap());
-        newCommit.removeBlobsRef(staging.getRemovedFiles());
+        boolean changed1 = newCommit.deterBlobsRef(staging.getStagedMap());
+        boolean changed2 = newCommit.removeBlobsRef(staging.getRemovedFiles());
+        boolean changed = changed1 || changed2;
+        if (!changed) {
+            System.out.println("No changes added to the commit");
+            return;
+        }
 
         newCommit.computeHash();
         String hash = newCommit.getHash();
