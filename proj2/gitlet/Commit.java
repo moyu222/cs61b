@@ -92,11 +92,13 @@ public class Commit implements Serializable {
 
 
     /** get the current timestamp */
-    private String getCurrentTimestamp() {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy XXXX");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-        return dateFormat.format(new Date());
+    public static String getCurrentTimestamp() {
+        Date now = new Date();
+        Formatter formatter = new Formatter(Locale.ENGLISH);
+        formatter.format("%ta %tb %td %tT %tY %tz", now, now, now, now, now, now);
+        return formatter.toString();
     }
+
 
     /** compute the file name use this after compare to the index*/
     public void computeHash() {
@@ -192,7 +194,7 @@ public class Commit implements Serializable {
 
     /** get String format when gitlet log
      * Assume that the commit has already computed the hash */
-    public String getLog() {
+    public void printLog() {
         StringBuilder log = new StringBuilder();
         log.append("===\n");
         log.append("commit ").append(getHash()).append("\n");
@@ -205,9 +207,7 @@ public class Commit implements Serializable {
 
         log.append("Date: ").append(timestamp).append("\n");
         log.append(message).append("\n");
-        log.append("\n");
-
-        return log.toString();
+        System.out.println(log);
     }
 
 

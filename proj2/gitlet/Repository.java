@@ -148,7 +148,7 @@ public class Repository {
         String parentCommitHash = getHeadCommitHash();
         Commit newCommit = new Commit(message, parentCommitHash);
 
-        boolean changed = newCommit.deterBlobsRef(staging.getStagedMap()) &&
+        boolean changed = newCommit.deterBlobsRef(staging.getStagedMap()) ||
                 newCommit.removeBlobsRef(staging.getRemovedFiles());
         if (!changed) {
             System.out.println("No changes added to the commit");
@@ -159,7 +159,7 @@ public class Repository {
         String hash = newCommit.getHash();
         newCommit.saveCommit(hash);
         updateBranchHead(hash);
-        Utils.restrictedDelete("index");
+        Index.clear();
     }
 
     /** rm command
@@ -192,7 +192,7 @@ public class Repository {
 
             File fileToRemove = new File(fileName);
             if (fileToRemove.exists()) {
-                fileToRemove.delete();
+                Utils.restrictedDelete(fileToRemove);
             }
         }
 
@@ -210,7 +210,7 @@ public class Repository {
         Commit currCommit = Commit.loadCommitFromHash(currCommitHash);
 
         while (currCommit != null) {
-            System.out.println(currCommit.getLog());
+            currCommit.printLog();
 
             List<String> parentHashes = currCommit.getParentHashes();
             if (parentHashes.isEmpty()) {
@@ -234,7 +234,7 @@ public class Repository {
         }
         for (String commitHash : commitList) {
             Commit commit = Commit.loadCommitFromHash(commitHash);
-            System.out.println(commit.getLog());
+            commit.printLog();
         }
     }
 
@@ -428,12 +428,12 @@ public class Repository {
         }
 
         for (String fileToRemove : workFilesToRemove) {
-            new File(fileToRemove).delete();
+            Utils.restrictedDelete(fileToRemove);
         }
 
         changeBranch(branchName);
         if (Index.INDEX_FILE.exists()){
-            Utils.restrictedDelete("index");
+           Index.clear();
         }
 
     }
@@ -600,7 +600,7 @@ public class Repository {
             } else if (givenCaseNum == 2 && currCaseNum == 4) {
                 staging.markForRemoval(fileName);
                 File fileToRemove = new File(fileName);
-                fileToRemove.delete();
+                Utils.restrictedDelete(fileToRemove);
             } else if (givenCaseNum == 4 && currCaseNum == 2) {
 
             } else if (!Objects.equals(currBlobId, givenBlobId)) {
@@ -637,7 +637,7 @@ public class Repository {
         String hash = newCommit.getHash();
         newCommit.saveCommit(hash);
         updateBranchHead(hash);
-        Utils.restrictedDelete("index");
+        Index.clear();
 
     }
 
