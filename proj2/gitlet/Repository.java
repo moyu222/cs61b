@@ -666,7 +666,8 @@ public class Repository {
             List<Integer> caseList = mergeHelper(currBlobId, splitBlobId, givenBlobId);
             int currCaseNum = caseList.get(0);
             int givenCaseNum = caseList.get(1);
-            staging = mergeCase(givenCaseNum, currCaseNum, fileName, staging, givenBlobId, currBlobId, workFilePath);
+            staging = mergeCase(givenCaseNum, currCaseNum, fileName,
+                    staging, givenBlobId, currBlobId, workFilePath);
         }
         String message = "Merged " + branchName + " into " + currBranch + ".";
         List<String> parentHashes = new ArrayList<>();
