@@ -37,7 +37,7 @@ public class Blob {
 
     /** save blob object to 'objects/blobs/' if not exist*/
     public void saveBlob() {
-        File blobfile = join(BLOBS_DIR,hash);
+        File blobfile = join(BLOBS_DIR, hash);
         if (!blobfile.exists()) {
             Utils.writeContents(blobfile, (Object) content);
         }
@@ -50,7 +50,7 @@ public class Blob {
 
     /** get the content of work file */
     public String getFileContent() {
-        File blobfile = join(BLOBS_DIR,hash);
+        File blobfile = join(BLOBS_DIR, hash);
         return Utils.readContentsAsString(blobfile);
     }
 

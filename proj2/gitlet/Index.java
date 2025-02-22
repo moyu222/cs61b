@@ -54,7 +54,7 @@ public class Index implements Serializable {
 
     /** mark the file need to be removed
      */
-    public void markForRemoval (String filePath) {
+    public void markForRemoval(String filePath) {
         removedFiles.add(filePath);
     }
 
@@ -67,13 +67,6 @@ public class Index implements Serializable {
     /** Read the index file and get the index object */
     public static Index getIndex() {
         return Utils.readObject(INDEX_FILE, Index.class);
-    }
-
-    /** From the index from file get String information */
-    public static List<String> Load() {
-        List<String> s = new ArrayList<>();
-        s.add("1");
-        return s;
     }
 
     /** get stagedFile object */

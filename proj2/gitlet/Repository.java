@@ -5,18 +5,15 @@ import java.util.*;
 
 import static gitlet.Utils.*;
 
-// TODO: any imports you need here
+
 
 /** Represents a gitlet repository.
- *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
  *  @author TODO
  */
 public class Repository {
     /**
-     * TODO: add instance variables here.
-     *
      * List all instance variables of the Repository class here with a useful
      * comment above them describing what that variable represents and how that
      * variable is used. We've provided two examples for you.
@@ -25,7 +22,7 @@ public class Repository {
     /**
      * the hashset of tracking the boldID in the bolds folder
      */
-    public static HashSet<String> blobSet = new HashSet<>();
+
 
     /**
      * The current working directory.
@@ -49,7 +46,7 @@ public class Repository {
 
 
 
-    /* TODO: fill in the rest of this class. */
+
 
     /** a function to write heads/master file: the hash value of commit */
 
@@ -63,7 +60,8 @@ public class Repository {
     public static void init() {
 
         if (GITLET_DIR.exists()) {
-            System.out.println("`A Gitlet version-control system already exists in the current directory.`");
+            System.out.println("`A Gitlet version-control system already "
+                    + "exists in the current directory.`");
             return;
         }
         if (!checkStructure()) {
@@ -414,8 +412,8 @@ public class Repository {
 
         for (String file : workFileList) {
             if (!(currCommitBlobRefs.containsKey(file)) && blobsRef.containsKey(file)) {
-                System.out.println("There is an untracked file in the way; delete it, " +
-                        "or add and commit it first.");
+                System.out.println("There is an untracked file in the way; delete it, "
+                        + "or add and commit it first.");
                 System.exit(0);
             }
         }
@@ -436,8 +434,8 @@ public class Repository {
         }
 
         changeBranch(branchName);
-        if (Index.INDEX_FILE.exists()){
-           Index.clear();
+        if (Index.INDEX_FILE.exists()) {
+            Index.clear();
         }
 
     }
@@ -501,7 +499,7 @@ public class Repository {
         changeBranch(currHead);
         tempBranch.delete();
         File headFile = join(HEADS_DIR, currHead);
-        Utils.writeContents(headFile,commitId);
+        Utils.writeContents(headFile, commitId);
     }
 
     /** the merge command
@@ -517,8 +515,8 @@ public class Repository {
         if (workFileList != null) {
             for (String file : workFileList) {
                 if (!(currCommitBlobRefs.containsKey(file))) {
-                    System.out.println("There is an untracked file in the way; delete it, " +
-                            "or add and commit it first.");
+                    System.out.println("There is an untracked file in the way; delete it, "
+                            + "or add and commit it first.");
                     System.exit(0);
                 }
             }
@@ -555,8 +553,8 @@ public class Repository {
             String commitHash = queue.poll();
             commitCount.put(commitHash, commitCount.getOrDefault(commitHash, 0) + 1);
             if (commitCount.get(commitHash) == 2) {
-                 splitCommitHash = commitHash;
-                 break;
+                splitCommitHash = commitHash;
+                break;
             }
 
             Commit commit = Commit.loadCommitFromHash(commitHash);
@@ -614,32 +612,34 @@ public class Repository {
 
             if (givenCaseNum == 5 && currCaseNum == 4) {
                 staging.add(fileName, givenBlobId);
-                String Content = Utils.readContentsAsString(join(Blob.BLOBS_DIR, givenBlobId));
-                Utils.writeContents(workFilePath, Content);
+                String content = Utils.readContentsAsString(join(Blob.BLOBS_DIR, givenBlobId));
+                Utils.writeContents(workFilePath, content);
             } else if (givenCaseNum == 4 && currCaseNum == 5) {
                 staging.add(fileName, currBlobId);
             } else if (givenCaseNum == 1 && currCaseNum == 3) {
                 staging.add(fileName, givenBlobId);
-                String Content = Utils.readContentsAsString(join(Blob.BLOBS_DIR, givenBlobId));
-                Utils.writeContents(workFilePath, Content);
+                String content = Utils.readContentsAsString(join(Blob.BLOBS_DIR, givenBlobId));
+                Utils.writeContents(workFilePath, content);
             } else if (givenCaseNum == 2 && currCaseNum == 4) {
                 staging.markForRemoval(fileName);
                 Utils.restrictedDelete(fileName);
             } else if (givenCaseNum == 4 && currCaseNum == 2) {
-
+                staging.add(fileName, currBlobId);
             } else if (givenCaseNum == 3 && currCaseNum == 1) {
-
+                staging.add(fileName, currBlobId);
             } else if (!Objects.equals(currBlobId, givenBlobId)) {
 
                 StringBuilder newContent = new StringBuilder();
                 if (currBlobId != null) {
                     newContent.append("<<<<<<< HEAD").append("\n");
-                    String currContent = Utils.readContentsAsString(join(Blob.BLOBS_DIR, currBlobId));
+                    String currContent = Utils.readContentsAsString
+                            (join(Blob.BLOBS_DIR, currBlobId));
                     newContent.append(currContent);
                     newContent.append("=======").append("\n");
                 }
                 if (givenBlobId != null) {
-                    newContent.append(Utils.readContentsAsString(join(Blob.BLOBS_DIR, givenBlobId)));
+                    newContent.append(Utils.readContentsAsString
+                            (join(Blob.BLOBS_DIR, givenBlobId)));
                 }
                 newContent.append(">>>>>>>").append("\n");
                 Utils.writeContents(workFilePath, newContent.toString());
@@ -678,49 +678,34 @@ public class Repository {
 
     }
 
-    private static List<Integer> mergeHelper(String currBlobId, String splitBlobId, String givenBlobId) {
+    private static List<Integer> mergeHelper
+            (String currBlobId, String splitBlobId, String givenBlobId) {
         int currCaseNum = 0;
         int givenCaseNum = 0;
 
         // file in curr is new
         if (splitBlobId == null && currBlobId != null) {
             currCaseNum = 1;
-        }
-        // file in curr is deleted
-        else if (splitBlobId != null && currBlobId == null) {
+        } else if (splitBlobId != null && currBlobId == null) {
             currCaseNum = 2;
-        }
-        // null both in curr and split
-        else if (splitBlobId == null && currBlobId == null) {
+        } else if (splitBlobId == null && currBlobId == null) {
             currCaseNum = 3;
-        }
-        // file in curr does not been modified
-        else if (currBlobId.equals(splitBlobId)) {
+        } else if (currBlobId.equals(splitBlobId)) {
             currCaseNum = 4;
-        }
-        // file in curr has been modified
-        else {
+        } else {
             currCaseNum = 5;
         }
 
         // file in given is new
         if (splitBlobId == null && givenBlobId != null) {
             givenCaseNum = 1;
-        }
-        // file in given is deleted
-        else if (splitBlobId != null && givenBlobId == null) {
+        } else if (splitBlobId != null && givenBlobId == null) {
             givenCaseNum = 2;
-        }
-        // null both in given and split
-        else if (splitBlobId == null) {
+        } else if (splitBlobId == null) {
             givenCaseNum = 3;
-        }
-        // file in given does not been modified
-        else if (givenBlobId.equals(splitBlobId)) {
+        } else if (givenBlobId.equals(splitBlobId)) {
             givenCaseNum = 4;
-        }
-        // file in given has been modified
-        else {
+        } else {
             givenCaseNum = 5;
         }
         List<Integer> result = new ArrayList<>();
@@ -747,14 +732,14 @@ public class Repository {
      * else return false
      */
     public static boolean checkStructure() {
-        return GITLET_DIR.exists() && Commit.COMMIT_DIR.exists() &&
-                Blob.BLOBS_DIR.exists() && HEADS_DIR.exists();
+        return GITLET_DIR.exists() && Commit.COMMIT_DIR.exists()
+                && Blob.BLOBS_DIR.exists() && HEADS_DIR.exists();
     }
 
     /** get the current branch */
     public static String getCurrentBranch() {
         String headContents = Utils.readContentsAsString(HEAD_FILE).trim();
-        return headContents.replace("refs/heads/","");
+        return headContents.replace("refs/heads/", "");
     }
 
     /** update current branch head content */
