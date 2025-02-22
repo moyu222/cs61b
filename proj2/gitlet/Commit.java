@@ -111,8 +111,8 @@ public class Commit implements Serializable {
      *
      * hash -> object (commit) -> treemap
      */
-    private TreeMap<String, String> loadBlobsFromParent(List<String> YparentHashes) {
-        String firstParentHash = YparentHashes.get(0);
+    private TreeMap<String, String> loadBlobsFromParent(List<String> yParentHashes) {
+        String firstParentHash = yParentHashes.get(0);
         Commit firstParent = loadCommitFromHash(firstParentHash);
         return new TreeMap<>(firstParent.getBlobsRef());
     }
@@ -130,8 +130,8 @@ public class Commit implements Serializable {
             return;
         }
 
-        for (String Xhash : parentHashes) {
-            Commit parent = loadCommitFromHash(Xhash);
+        for (String xHash : parentHashes) {
+            Commit parent = loadCommitFromHash(xHash);
             if (parent != null) {
                 parentCommits.add(parent);
             }
@@ -205,8 +205,8 @@ public class Commit implements Serializable {
     /** save the commit file
      * Assume the commit has determined the blobsRef
      * after deterBlobsRef and get hash */
-    public void saveCommit(String Yhash) {
-        File filePath = join(COMMIT_DIR, Yhash);
+    public void saveCommit(String yHash) {
+        File filePath = join(COMMIT_DIR, yHash);
         Utils.writeObject(filePath, this);
     }
 

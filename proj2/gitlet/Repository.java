@@ -502,21 +502,19 @@ public class Repository {
         Utils.writeContents(headFile, commitId);
     }
 
-    /** the merge command
-     *
-     */
-    public static void merge(String branchName) {
-
+    private static boolean mergeChecker(String branchName) {
         String currBCHash = getHeadCommitHash();
         Commit currCommit = Commit.loadCommitFromHash(currBCHash);
         TreeMap<String, String> currCommitBlobRefs = currCommit.getBlobsRef();
         List<String> workFileList = Utils.plainFilenamesIn(CWD);
+        boolean flag = false;
 
         if (workFileList != null) {
             for (String file : workFileList) {
                 if (!(currCommitBlobRefs.containsKey(file))) {
                     System.out.println("There is an untracked file in the way; delete it, "
                             + "or add and commit it first.");
+                    flag = true;
                     System.exit(0);
                 }
             }
@@ -526,6 +524,7 @@ public class Repository {
             Index staging = Index.getIndex();
             if (!staging.getStagedMap().isEmpty() || !staging.getRemovedFiles().isEmpty()) {
                 System.out.println("You have uncommitted changes.");
+                flag = true;
                 System.exit(0);
             }
         }
@@ -533,22 +532,100 @@ public class Repository {
         File givenBranchPath = join(HEADS_DIR, branchName);
         if (!givenBranchPath.exists()) {
             System.out.println("A branch with that name does not exist.");
-            return;
+            return true;
         }
 
         String currBranch = getCurrentBranch();
         if (currBranch.equals(branchName)) {
             System.out.println("Cannot merge a branch with itself.");
-            return;
+            return true;
+        }
+        return flag;
+    }
+
+    private static boolean mergeSplitChecker(String currBCHash,
+                                             String splitCommitHash,
+                                             String branchName,
+                                             String givenBCHash) {
+        if (splitCommitHash == null) {
+            System.out.println("Error: No split point found.");
+            return true;
         }
 
+        if (splitCommitHash.equals(givenBCHash)) {
+            System.out.println("Given branch is an ancestor of the current branch.");
+            return true;
+        }
+        if (splitCommitHash.equals(currBCHash)) {
+            checkoutBranch(branchName);
+            System.out.println("Current branch fast-forwarded.");
+            return true;
+        }
+        return false;
+    }
+
+    private static Index mergeCase(int givenCaseNum,
+                                  int currCaseNum,
+                                  String fileName,
+                                  Index staging,
+                                  String givenBlobId,
+                                  String currBlobId,
+                                  File workFilePath) {
+        if (givenCaseNum == 5 && currCaseNum == 4) {
+            staging.add(fileName, givenBlobId);
+            String content = Utils.readContentsAsString(join(Blob.BLOBS_DIR, givenBlobId));
+            Utils.writeContents(workFilePath, content);
+        } else if (givenCaseNum == 4 && currCaseNum == 5) {
+            staging.add(fileName, currBlobId);
+        } else if (givenCaseNum == 1 && currCaseNum == 3) {
+            staging.add(fileName, givenBlobId);
+            String content = Utils.readContentsAsString(join(Blob.BLOBS_DIR, givenBlobId));
+            Utils.writeContents(workFilePath, content);
+        } else if (givenCaseNum == 2 && currCaseNum == 4) {
+            staging.markForRemoval(fileName);
+            Utils.restrictedDelete(fileName);
+        } else if (givenCaseNum == 4 && currCaseNum == 2) {
+            staging.add(fileName, currBlobId);
+        } else if (givenCaseNum == 3 && currCaseNum == 1) {
+            staging.add(fileName, currBlobId);
+        } else if (!Objects.equals(currBlobId, givenBlobId)) {
+            StringBuilder newContent = new StringBuilder();
+            if (currBlobId != null) {
+                newContent.append("<<<<<<< HEAD").append("\n");
+                String currContent = Utils.readContentsAsString
+                        (join(Blob.BLOBS_DIR, currBlobId));
+                newContent.append(currContent);
+                newContent.append("=======").append("\n");
+            }
+            if (givenBlobId != null) {
+                newContent.append(Utils.readContentsAsString
+                        (join(Blob.BLOBS_DIR, givenBlobId)));
+            }
+            newContent.append(">>>>>>>").append("\n");
+            Utils.writeContents(workFilePath, newContent.toString());
+            add(fileName);
+            staging = Index.getIndex();
+            System.out.println("Encountered a merge conflict.");
+        }
+        return staging;
+    }
+
+    /** the merge command
+     *
+     */
+    public static void merge(String branchName) {
+        if (mergeChecker(branchName)) {
+            return;
+        }
+        String currBCHash = getHeadCommitHash();
+        String currBranch = getCurrentBranch();
+        File givenBranchPath = join(HEADS_DIR, branchName);
         String givenBCHash = Utils.readContentsAsString(givenBranchPath);
         Map<String, Integer> commitCount = new HashMap<>();
         Queue<String> queue = new LinkedList<>();
         queue.offer(currBCHash);
         queue.offer(givenBCHash);
         String splitCommitHash = null;
-
         while (!queue.isEmpty()) {
             String commitHash = queue.poll();
             commitCount.put(commitHash, commitCount.getOrDefault(commitHash, 0) + 1);
@@ -556,7 +633,6 @@ public class Repository {
                 splitCommitHash = commitHash;
                 break;
             }
-
             Commit commit = Commit.loadCommitFromHash(commitHash);
             for (String parentHash : commit.getParentHashes()) {
                 if (parentHash != null) {
@@ -564,104 +640,43 @@ public class Repository {
                 }
             }
         }
-
-        if (splitCommitHash == null) {
-            System.out.println("Error: No split point found.");
+        if (mergeSplitChecker(currBCHash, splitCommitHash, branchName, givenBCHash)) {
             return;
         }
-
-        if (splitCommitHash.equals(givenBCHash)) {
-            System.out.println("Given branch is an ancestor of the current branch.");
-            return;
-        }
-        if (splitCommitHash.equals(currBCHash)) {
-            checkoutBranch(branchName);
-            System.out.println("Current branch fast-forwarded.");
-            return;
-        }
-
         Commit currBC = Commit.loadCommitFromHash(currBCHash);
         Commit givenBC = Commit.loadCommitFromHash(givenBCHash);
         Commit splitC = Commit.loadCommitFromHash(splitCommitHash);
         TreeMap<String, String> currBlobRef = currBC.getBlobsRef();
         TreeMap<String, String> givenBlobRef = givenBC.getBlobsRef();
         TreeMap<String, String> splitBlobRef = splitC.getBlobsRef();
-
         Set<String> allFiles = new HashSet<>();
         allFiles.addAll(currBlobRef.keySet());
         allFiles.addAll(givenBlobRef.keySet());
-
-
-
         Index staging;
         if (Index.INDEX_FILE.exists()) {
             staging = Index.getIndex();
         } else {
             staging = new Index();
         }
-
         for (String fileName : allFiles) {
             File workFilePath = new File(fileName);
             String currBlobId = currBlobRef.get(fileName);
             String splitBlobId = splitBlobRef.get(fileName);
             String givenBlobId = givenBlobRef.get(fileName);
-
             List<Integer> caseList = mergeHelper(currBlobId, splitBlobId, givenBlobId);
             int currCaseNum = caseList.get(0);
             int givenCaseNum = caseList.get(1);
-
-            if (givenCaseNum == 5 && currCaseNum == 4) {
-                staging.add(fileName, givenBlobId);
-                String content = Utils.readContentsAsString(join(Blob.BLOBS_DIR, givenBlobId));
-                Utils.writeContents(workFilePath, content);
-            } else if (givenCaseNum == 4 && currCaseNum == 5) {
-                staging.add(fileName, currBlobId);
-            } else if (givenCaseNum == 1 && currCaseNum == 3) {
-                staging.add(fileName, givenBlobId);
-                String content = Utils.readContentsAsString(join(Blob.BLOBS_DIR, givenBlobId));
-                Utils.writeContents(workFilePath, content);
-            } else if (givenCaseNum == 2 && currCaseNum == 4) {
-                staging.markForRemoval(fileName);
-                Utils.restrictedDelete(fileName);
-            } else if (givenCaseNum == 4 && currCaseNum == 2) {
-                staging.add(fileName, currBlobId);
-            } else if (givenCaseNum == 3 && currCaseNum == 1) {
-                staging.add(fileName, currBlobId);
-            } else if (!Objects.equals(currBlobId, givenBlobId)) {
-
-                StringBuilder newContent = new StringBuilder();
-                if (currBlobId != null) {
-                    newContent.append("<<<<<<< HEAD").append("\n");
-                    String currContent = Utils.readContentsAsString
-                            (join(Blob.BLOBS_DIR, currBlobId));
-                    newContent.append(currContent);
-                    newContent.append("=======").append("\n");
-                }
-                if (givenBlobId != null) {
-                    newContent.append(Utils.readContentsAsString
-                            (join(Blob.BLOBS_DIR, givenBlobId)));
-                }
-                newContent.append(">>>>>>>").append("\n");
-                Utils.writeContents(workFilePath, newContent.toString());
-                add(fileName);
-                staging = Index.getIndex();
-                System.out.println("Encountered a merge conflict.");
-            }
-
+            staging = mergeCase(givenCaseNum, currCaseNum, fileName, staging, givenBlobId, currBlobId, workFilePath);
         }
         String message = "Merged " + branchName + " into " + currBranch + ".";
-
         List<String> parentHashes = new ArrayList<>();
         parentHashes.add(currBCHash);
         parentHashes.add(givenBCHash);
-
         if (staging.getStagedMap().isEmpty() && staging.getRemovedFiles().isEmpty()) {
             System.out.println("No changes added to the commit");
             return;
         }
-
         Commit newCommit = new Commit(message, parentHashes);
-
         boolean changed1 = newCommit.deterBlobsRef(staging.getStagedMap());
         boolean changed2 = newCommit.removeBlobsRef(staging.getRemovedFiles());
         boolean changed = changed1 || changed2;
@@ -669,17 +684,16 @@ public class Repository {
             System.out.println("No changes added to the commit");
             return;
         }
-
         newCommit.computeHash();
         String hash = newCommit.getHash();
         newCommit.saveCommit(hash);
         updateBranchHead(hash);
         Index.clear();
-
     }
 
-    private static List<Integer> mergeHelper
-            (String currBlobId, String splitBlobId, String givenBlobId) {
+    private static List<Integer> mergeHelper(String currBlobId,
+                                             String splitBlobId,
+                                             String givenBlobId) {
         int currCaseNum = 0;
         int givenCaseNum = 0;
 
