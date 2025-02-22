@@ -1,8 +1,6 @@
 package gitlet;
 
 import java.io.File;
-import java.io.IOException;
-import java.lang.module.FindException;
 import java.util.*;
 
 import static gitlet.Utils.*;
@@ -113,6 +111,9 @@ public class Repository {
             staging = new Index();
         }
         staging.add(file, blobHash);
+
+        HashSet<String> removalSet = staging.getRemovedFiles();
+        removalSet.remove(file);
 
         String currentCommitHash = getHeadCommitHash();
         Commit currentCommit = Commit.loadCommitFromHash(currentCommitHash);
@@ -251,7 +252,7 @@ public class Repository {
         for (String commitHash : commitList) {
             Commit commit = Commit.loadCommitFromHash(commitHash);
             if (commit.getMessage().equals(message)) {
-                System.out.println(commit.getHash()+"\n");
+                System.out.println(commit.getHash());
                 found = true;
             }
         }
@@ -316,6 +317,10 @@ public class Repository {
             status.append("=== Removed Files ===").append("\n");
             status.append("\n");
         }
+        status.append("=== Modifications Not Staged For Commit ===").append("\n");
+        status.append("\n");
+        status.append("=== Untracked Files ===").append("\n");
+        status.append("\n");
 
         System.out.println(status);
     }
@@ -597,11 +602,14 @@ public class Repository {
                 staging.add(fileName, currBlobId);
             } else if (givenCaseNum == 1 && currCaseNum == 3) {
                 staging.add(fileName, givenBlobId);
+                String Content = Utils.readContentsAsString(join(Blob.BLOBS_DIR, givenBlobId));
+                Utils.writeContents(workFilePath, Content);
             } else if (givenCaseNum == 2 && currCaseNum == 4) {
                 staging.markForRemoval(fileName);
-                File fileToRemove = new File(fileName);
-                Utils.restrictedDelete(fileToRemove);
+                Utils.restrictedDelete(fileName);
             } else if (givenCaseNum == 4 && currCaseNum == 2) {
+
+            } else if (givenCaseNum == 3 && currCaseNum == 1) {
 
             } else if (!Objects.equals(currBlobId, givenBlobId)) {
 

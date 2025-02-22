@@ -90,7 +90,7 @@ public class Main {
                 validateNumArgs(args, 2);
                 checkInit();
                 String rmBranchName = args[1];
-                Repository.branch(rmBranchName);
+                Repository.rmBranch(rmBranchName);
                 break;
             case "reset":
                 validateNumArgs(args, 2);
@@ -102,7 +102,7 @@ public class Main {
                 validateNumArgs(args, 2);
                 checkInit();
                 String mergeBranchName = args[1];
-                Repository.branch(mergeBranchName);
+                Repository.merge(mergeBranchName);
                 break;
         }
 
