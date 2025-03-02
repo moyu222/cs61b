@@ -82,7 +82,7 @@ public class RandomUtils {
      * @throws IllegalArgumentException if {@code b <= a}
      * @throws IllegalArgumentException if {@code b - a >= Integer.MAX_VALUE}
      */
-    public static int uniform(Random random, int a, int b) {
+    public static int  uniform(Random random, int a, int b) {
         if ((b <= a) || ((long) b - a >= Integer.MAX_VALUE)) {
             throw new IllegalArgumentException("invalid range: [" + a + ", " + b + ")");
         }
